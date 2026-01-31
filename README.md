@@ -1,83 +1,65 @@
-# String Range Expander
+# SnipURL - Modern URL Shortener
 
-This Python utility provides a single, robust function called `expand_string_range` that parses a string of numbers and ranges and expands it into a clean, ordered sequence of integers. It is designed to handle a wide variety of formats and edge cases gracefully.
+A high-performance URL shortener built with Flask, SQLite, and Redis, following the ByteByteGo system design.
 
 ## Features
+- **Fast Shortening**: Uses Base62 encoding for compact URLs.
+- **Redirection Caching**: Redis integration for sub-millisecond redirect lookups.
+- **REST API**: programmatic URL shortening via `/api/v1/data/shorten`.
+- **User History**: IP-based history tracking to see your recently shortened links.
+- **Analytics Ready**: Uses 302 redirects for better click-through tracking.
+- **Premium UI**: Modern, responsive design built with Tailwind CSS.
 
-- **All-in-One Function**: A single entry point `expand_string_range` handles all the logic.
-- **Multiple Delimiter Support**: Automatically recognizes common range delimiters like `-`, `..`, `to`, and `~` without extra configuration.
-- **Step Value Parsing**: Supports step syntax for ranges, such as `"1-10:2"` to generate `[1, 3, 5, 7, 9]`.
-- **Reversed Range Handling**: Correctly processes descending ranges like `"10-5"` to produce `[5, 6, 7, 8, 9, 10]`.
-- **Smart Input Cleaning**: Automatically ignores leading/trailing whitespace and empty, comma-separated parts.
-- **Duplicate & Overlap Handling**: Automatically merges overlapping ranges and removes duplicate numbers (e.g., `"1-3,2-5"` becomes `[1, 2, 3, 4, 5]`).
-- **Flexible Output**: You can specify the output format as a Python `list` (default), `set`, or a CSV `string`.
-- **Robust Error Handling**: The script includes `try...except` blocks to catch and report errors for invalid parts (like `"1-a"`) without crashing, allowing the rest of the valid parts to be processed.
+## Prerequisites
+- Python 3.8+
+- MongoDB Server (Local or Atlas)
+- Redis Server (Optional, but recommended for caching)
 
----
+## Setup and Installation
 
-## How to Use the `expand_string_range` Function
+1. **Clone the repository** (or navigate to the folder):
+   ```bash
+   cd url-shortner-design
+   ```
 
-The primary way to use this utility is to import the `expand_string_range` function into your own Python scripts.
+2. **Create a virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-### 1. Basic Usage
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Simply pass the string you want to expand to the function. It will return a sorted list of integers by default.
+4. **Configuration**:
+   Ensure MongoDB and Redis are running. Update the `MONGO_URI` in `.env` if necessary.
 
-```python
-from range_expander_modular import expand_string_range
+5. **Run the application**:
+   ```bash
+   python app.py
+   ```
 
-# Basic range
-print(expand_string_range("1-5, 8, 11-13"))
-# Output: [1, 2, 3, 4, 5, 8, 11, 12, 13]
+## Redirection Strategy & Data Retrieval
 
-# With different delimiters handled automatically
-print(expand_string_range("1..3, 5~7, 10 to 12"))
-# Output: [1, 2, 3, 5, 6, 7, 10, 11, 12]
+### 1. Why 302 Redirects?
+The system implements **302 (Found)** redirects instead of 301 (Moved Permanently). 
+- **Analytics & Tracking**: Since 302 redirects are temporary, the browser will always hit our server before going to the destination. This allows us to capture visit analytics, IP addresses, and user agents for history tracking.
+- **Cache Control**: 301 redirects are cached aggressively by browsers, which would prevent us from tracking subsequent visits from the same user.
 
+### 2. High-Speed Extraction Logic
+To handle redirection at scale, the system follows this hierarchy:
+1. **Redis Cache (L1)**: Immediate lookup using the `short_code`. If found, redirected instantly.
+2. **MongoDB (L2)**: If cache misses, the system queries the `urls` collection using a unique index on `short_code`.
+3. **Lazy Caching**: When a record is fetched from MongoDB, it is automatically written to Redis with a TTL to accelerate future requests.
 
-2. Using Step Values
-The function can parse ranges with a step value, defined by a colon (:).
-from range_expander_modular import expand_string_range
-
-# Ascending with a step of 2
-print(expand_string_range("1-10:2"))
-# Output: [1, 3, 5, 7, 9]
-
-# Descending with a step of 3
-print(expand_string_range("20-1:3"))
-# Output: [1, 4, 7, 10, 13, 16, 19, 20]
-
-
-3. Changing the Output Format
-You can control the output format by using the output_format parameter. The supported formats are "list", "set", and "csv".
-from range_expander_modular import expand_string_range
-
-# Get a set as output
-print(expand_string_range("1-4,3-6", output_format="set"))
-# Output: {1, 2, 3, 4, 5, 6}
-
-# Get a CSV string as output
-print(expand_string_range("1-4, 8", output_format="csv"))
-# Output: "1,2,3,4,8"
-
-
-4. Error Handling
-If the input string contains an invalid part, the function will print a warning and skip that part, continuing to process the rest of the string.
-from range_expander_modular import expand_string_range
-
-# The invalid parts "1-a" and "10:b" will be skipped
-result = expand_string_range("1-a, 2-4, 8, 10:b")
-
-# Console Output:
-# Warning: Skipping invalid part '1-a'. Reason: Invalid range with non-numeric values: 1-a
-# Warning: Skipping invalid part '10:b'. Reason: Invalid step value: b
-
-print(result)
-# Final Result: [2, 3, 4, 8]
-
-
-Running the Script Directly
-If you run the range_expander_modular.py script directly from your terminal, the code inside the if __name__ == '__main__': block will execute. This section contains several print statements that demonstrate the function's capabilities across all defined scenarios, making it easy to see examples of its behavior.
-python range_expander_modular.py
-
-
+## Folder Structure
+- `app/`: Main application package
+  - `routes.py`: Flask route handlers for UI, API, and Redirection.
+  - `services/`: Specialized logic for Bloom Filter, Shortening, and Caching.
+  - `templates/`: AJAX-enabled HTML templates using Tailwind CSS.
+- `config.py`: Environment-aware configuration settings.
+- `app.py`: Entry point for the application.
+- `.env`: Secret keys and connection strings.
+- `requirements.txt`: Project dependencies.
