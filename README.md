@@ -1,45 +1,55 @@
 # SnipURL - Modern URL Shortener
 
-A high-performance URL shortener built with Flask, SQLite, and Redis, following the ByteByteGo system design.
+A high-performance URL shortener built with Flask, MongoDB, and Redis, following the ByteByteGo system design.
 
 ## Features
 - **Fast Shortening**: Uses Base62 encoding for compact URLs.
+- **Scalable Collision Detection**: Redis-based Bloom Filter for O(1) existence checks.
 - **Redirection Caching**: Redis integration for sub-millisecond redirect lookups.
 - **REST API**: programmatic URL shortening via `/api/v1/data/shorten`.
-- **User History**: IP-based history tracking to see your recently shortened links.
+- **User History**: IP-based history tracking with proxy support (`X-Forwarded-For`).
 - **Analytics Ready**: Uses 302 redirects for better click-through tracking.
-- **Premium UI**: Modern, responsive design built with Tailwind CSS.
+- **Premium UI**: Modern, responsive design built with Tailwind CSS and Toastify notifications.
 
 ## Prerequisites
-- Python 3.8+
-- MongoDB Server (Local or Atlas)
-- Redis Server (Optional, but recommended for caching)
+- Docker and Docker Compose (Recommended)
+- OR:
+    - Python 3.8+
+    - MongoDB Server (Local or Atlas)
+    - Redis Server
 
-## Setup and Installation
+## Quick Start (Docker)
 
-1. **Clone the repository** (or navigate to the folder):
+1. **Copy the environment template**:
    ```bash
-   cd url-shortner-design
+   cp .env.example .env
    ```
 
-2. **Create a virtual environment**:
+2. **Spin up the entire stack**:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   docker-compose up --build
    ```
+   The app will be available at `http://localhost:5000`.
 
-3. **Install dependencies**:
+## Manual Setup (Local)
+
+1. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Configuration**:
-   Ensure MongoDB and Redis are running. Update the `MONGO_URI` in `.env` if necessary.
+2. **Configuration**:
+   Copy `.env.example` to `.env` and fill in your local MongoDB/Redis connection strings.
 
-5. **Run the application**:
+3. **Run the application**:
    ```bash
    python app.py
    ```
+
+## Monitoring & Management Tools
+When running via Docker, the following management UIs are available:
+- **Mongo Express**: `http://localhost:8081` (Manage your MongoDB collections)
+- **Redis Commander**: `http://localhost:8082` (Inspect Bloom Filter bits and Cached URLs)
 
 ## Redirection Strategy & Data Retrieval
 
@@ -63,3 +73,4 @@ To handle redirection at scale, the system follows this hierarchy:
 - `app.py`: Entry point for the application.
 - `.env`: Secret keys and connection strings.
 - `requirements.txt`: Project dependencies.
+- `Dockerfile` & `docker-compose.yml`: Containerization and orchestration.
