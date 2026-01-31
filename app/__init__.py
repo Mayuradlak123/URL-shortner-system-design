@@ -18,7 +18,7 @@ def create_app(config_class=Config):
         mongo_client = MongoClient(app.config['MONGO_URI'], serverSelectionTimeoutMS=2000)
         db = mongo_client.get_default_database()
         mongo_client.admin.command('ping')
-        print(f"✅ Connected to MongoDB: {app.config['MONGO_URI']}")
+        print(f"✅ Connected to MongoDB")
     except Exception as e:
         print(f"❌ MongoDB connection failed: {e}")
 
@@ -26,7 +26,7 @@ def create_app(config_class=Config):
     try:
         redis_client = redis.from_url(app.config['REDIS_URL'])
         redis_client.ping()
-        print(f"✅ Connected to Redis: {app.config['REDIS_URL']}")
+        print(f"✅ Connected to Redis")
     except Exception as e:
         print(f"❌ Redis connection failed: {e}")
 
